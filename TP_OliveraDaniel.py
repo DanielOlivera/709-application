@@ -117,6 +117,9 @@ while True:
         outLips = []#(48,60)
         inLips = []#(60,68)
         #Outline
+        
+        
+        
         for n in range(0, 17):
             x1 = face_landmarks.part(n).x
             y1 = face_landmarks.part(n).y
