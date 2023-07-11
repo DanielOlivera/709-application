@@ -1,14 +1,21 @@
+import pickle
 import cv2 as cv
 import pandas as pd
 import numpy as np
 import dlib
 import imutils
+import time  
 from AR_calculator import *
 from AR_utils import *
+
+with open('modelo_LR_M.pkl', 'rb') as file:
+    model = pickle.load(file)
 
 cap = cv.VideoCapture(0, cv.CAP_DSHOW)
 hog_face_detector = dlib.get_frontal_face_detector()
 dlib_facelandmark = dlib.shape_predictor("D:\VSCnotebook\TPfinal\landmarks.dat")
+start_time = time.time()
+frame_count = 0
 
 while True:
     _, frame = cap.read()
@@ -57,11 +64,39 @@ while True:
         in_lips = append_ILAR(frame, face_landmarks)
         ILAR = calculate_ILAR(in_lips)
         ILAR = np.asarray(ILAR)
-        
-        sample_array = np.vstack((OAR, LBAR, RBAR, NUAR, NDAR, LEAR, REAR, OLAR, ILAR)) 
+        TAG = np.asarray(int(0))       
+         
+        sample_array = np.vstack((OAR, LBAR, RBAR, NUAR, NDAR, LEAR, REAR, OLAR, ILAR, TAG)) 
         sample_array = sample_array.transpose()
-        pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\709_neutral.csv', mode='a', index=False, header=False)
+                
+        pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\0_709_neutral.csv', mode='a', index=False, header=False)
+        #pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\1_709_surprise.csv', mode='a', index=False, header=False)
+        #pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\2_709_angry.csv', mode='a', index=False, header=False)
+        #pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\3_709_happy.csv', mode='a', index=False, header=False)
+        #pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\4_709_sad.csv', mode='a', index=False, header=False)
+        #pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\5_709_fear.csv', mode='a', index=False, header=False)
+        #pd.DataFrame(sample_array).to_csv('D:\MCD709\data\\6_709_disgust.csv', mode='a', index=False, header=False)
         print(sample_array)
+        
+        prediction_array = np.vstack((OAR, LBAR, RBAR, NUAR, NDAR, LEAR, REAR, OLAR, ILAR))
+        prediction_array = prediction_array.transpose()
+        feature_names = ['OAR', 'LBAR', 'RBAR', 'NUAR', 'NDAR', 'LEAR', 'REAR', 'OLAR', 'ILAR']
+        prediction_array = pd.DataFrame(prediction_array, columns=feature_names)        
+        prediction = model.predict(prediction_array)
+        
+        if prediction == 0:
+            label = "Neutral"
+        elif prediction == 1:
+            label = "Surprise"
+        elif prediction == 2:
+            label = "Angry"
+            
+        cv.putText(frame, label, (frame.shape[1] - 150, 30), cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv.LINE_AA)
+             
+    frame_count += 1
+    elapsed_time = time.time() - start_time
+    fps = frame_count / elapsed_time
+    cv.putText(frame, "FPS: {:.2f}".format(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
     cv.imshow("", frame)
 
